@@ -1,0 +1,276 @@
+{% extends 'base.html' %}
+
+{% block main %}
+<div class="container">
+    <h1 class="mt-5 mb-4">Список курочек</h1>
+    <p>Среднее кол-во яиц в месяц по курятнику (среди несушек): {{ coop_statistic.avg_eggs_per_month }}</p>
+    <p>Среднее кол-во кг по курятнику (среди бройлеров): {{ coop_statistic.avg_weight }}</p>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Имя</th>
+                <th>Тип</th>
+                <th>Вес (кг)</th>
+                <th>Среднее количество яиц в месяц</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for bird in birds %}
+            <tr data-bird-oid="{{ bird.oid }}">
+                <td>
+                    <span class="bird-name">{{ bird.name }}</span>
+                    <input type="text" class="form-control bird-name-edit" value="{{ bird.name }}" style="display: none;">
+                    <button class="btn btn-link btn-sm edit-name-btn">
+                        <img class="name-edit-button" src="{{ url_for('static', filename='img/pencil-square.svg') }}" alt="Edit">
+                    </button>
+                </td>
+                <td>
+                    <span class="bird-type">{{ bird.type }}</span>
+                    <input type="text" class="form-control bird-type-edit" value="{{ bird.type }}" style="display: none;">
+                </td>
+                <td>
+                    <span class="bird-weight">{{ bird.weight }}</span>
+                    <input type="number" class="form-control bird-weight-edit" value="{{ bird.weight }}" style="display: none;">
+                    <button class="btn btn-link btn-sm edit-weight-btn">
+                        <img class="weight-edit-button" src="{{ url_for('static', filename='img/pencil-square.svg') }}" alt="Edit">
+                    </button>
+                </td>
+                <td>
+                    <span class="bird-avg-eggs">{{ bird.avg_eggs_per_month or "Неизвестно" }}</span>
+                    <input type="number" class="form-control bird-avg-eggs-edit" value="{{ bird.avg_eggs_per_month }}" style="display: none;">
+                    <button class="btn btn-link btn-sm edit-avg-eggs-btn">
+                        <img class="avg-eggs-edit-button" src="{{ url_for('static', filename='img/pencil-square.svg') }}" alt="Edit">
+                    </button>
+                </td>
+                <td>
+                    <button
+                        type="button"
+                        class="btn btn-danger btn-sm delete-btn"
+                        data-bird-oid="{{ bird.oid }}">
+                        Удалить
+                    </button>
+                </td>
+            </tr>
+            {% endfor %}
+
+            {% if len_birds < items_per_page %}
+                {% for i in range(items_per_page - len_birds) %}
+                    <tr data-bird-oid="pass">
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td>
+                            <button disabled
+                                class="btn btn-danger btn-sm delete-btn"
+                                style="opacity: 0;"
+                            >
+                                    Удалить
+                            </button>
+                        </td>
+                    </tr>
+                {% endfor %}
+            {% endif %}
+        </tbody>
+    </table>
+    <a href="{{ url_for('birds.create', coop_oid=coop_oid) }}" class="btn btn-dark btn-sm mt-5">Добавить курочку</a>
+    <a href="{{ url_for('coops.index') }}" class="btn btn-dark btn-sm mt-5">На главную</a>
+
+    {% if page %}
+    <div class="pagination-container mt-5">
+        <nav aria-label="Page navigation">
+            <ul class="pagination">
+                {% for p in range(1, total_pages + 1) %}
+                <li class="page-item {% if p == page %}active{% endif %}">
+                    <a class="page-link" href="{{ url_for('birds.listing', page=p, coop_oid=coop_oid) }}">{{ p }}</a>
+                </li>
+                {% endfor %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        async function updateBird(birdOid, field, value) {
+            try {
+                const response = await fetch(`/birds/update/${birdOid}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ field, value })
+                });
+
+                if (response.ok) {
+                    location.reload();
+                } else {
+                   throw new Error('Данные введены неверно');
+                }
+            } catch (error) {
+                console.error('Ошибка:', error);
+                alert('Данные введены неверно');
+                location.reload();
+            }
+        }
+
+        document.querySelectorAll('.edit-name-btn').forEach(button => {
+            button.addEventListener('click', (event) => {
+                const row = event.target.closest('tr');
+                const nameSpan = row.querySelector('.bird-name');
+                const nameInput = row.querySelector('.bird-name-edit');
+                const editButton = row.querySelector('.name-edit-button');
+
+                nameSpan.style.display = 'none';
+                nameInput.style.display = 'inline-block';
+                nameInput.focus();
+                editButton.style.display = 'none';
+
+                nameInput.addEventListener('blur', () => {
+                    const newName = nameInput.value;
+                    nameSpan.textContent = newName;
+                    nameSpan.style.display = 'inline-block';
+                    nameInput.style.display = 'none';
+
+                    const birdOid = row.getAttribute('data-bird-oid');
+                    updateBird(birdOid, 'name', newName);
+                });
+
+                nameInput.addEventListener('keypress', (e) => {
+                    editButton.style.display = 'inline-block';
+                    if (e.key === 'Enter') {
+                        nameInput.blur();
+                    }
+                });
+            });
+        });
+
+        document.querySelectorAll('.edit-type-btn').forEach(button => {
+            button.addEventListener('click', (event) => {
+                const row = event.target.closest('tr');
+                const typeSpan = row.querySelector('.bird-type');
+                const typeInput = row.querySelector('.bird-type-edit');
+                const editButton = row.querySelector('.type-edit-button');
+
+                typeSpan.style.display = 'none';
+                typeInput.style.display = 'inline-block';
+                typeInput.focus();
+                editButton.style.display = 'none';
+
+                typeInput.addEventListener('blur', () => {
+                    const newType = typeInput.value;
+                    typeSpan.textContent = newType;
+                    typeSpan.style.display = 'inline-block';
+                    typeInput.style.display = 'none';
+
+                    const birdOid = row.getAttribute('data-bird-oid');
+                    updateBird(birdOid, 'type', newType);
+                });
+
+                typeInput.addEventListener('keypress', (e) => {
+                    editButton.style.display = 'inline-block';
+                    if (e.key === 'Enter') {
+                        typeInput.blur();
+                    }
+                });
+            });
+        });
+
+        document.querySelectorAll('.edit-weight-btn').forEach(button => {
+            button.addEventListener('click', (event) => {
+                const row = event.target.closest('tr');
+                const weightSpan = row.querySelector('.bird-weight');
+                const weightInput = row.querySelector('.bird-weight-edit');
+                const editButton = row.querySelector('.weight-edit-button');
+
+                weightSpan.style.display = 'none';
+                weightInput.style.display = 'inline-block';
+                weightInput.focus();
+                editButton.style.display = 'none';
+
+                weightInput.addEventListener('blur', () => {
+                    const newWeight = weightInput.value;
+                    weightSpan.textContent = newWeight;
+                    weightSpan.style.display = 'inline-block';
+                    weightInput.style.display = 'none';
+
+                    const birdOid = row.getAttribute('data-bird-oid');
+                    updateBird(birdOid, 'weight', newWeight);
+                });
+
+                weightInput.addEventListener('keypress', (e) => {
+                    editButton.style.display = 'inline-block';
+                    if (e.key === 'Enter') {
+                        weightInput.blur();
+                    }
+                });
+            });
+        });
+
+        document.querySelectorAll('.edit-avg-eggs-btn').forEach(button => {
+            button.addEventListener('click', (event) => {
+                const row = event.target.closest('tr');
+                const avgEggsSpan = row.querySelector('.bird-avg-eggs');
+                const avgEggsInput = row.querySelector('.bird-avg-eggs-edit');
+                const editButton = row.querySelector('.avg-eggs-edit-button');
+
+                avgEggsSpan.style.display = 'none';
+                avgEggsInput.style.display = 'inline-block';
+                avgEggsInput.focus();
+                editButton.style.display = 'none';
+
+                avgEggsInput.addEventListener('blur', () => {
+                    const newAvgEggs = avgEggsInput.value;
+                    avgEggsSpan.textContent = newAvgEggs;
+                    avgEggsSpan.style.display = 'inline-block';
+                    avgEggsInput.style.display = 'none';
+
+                    const birdOid = row.getAttribute('data-bird-oid');
+                    updateBird(birdOid, 'avg_eggs_per_month', newAvgEggs);
+                });
+
+                avgEggsInput.addEventListener('keypress', (e) => {
+                    editButton.style.display = 'inline-block';
+                    if (e.key === 'Enter') {
+                        avgEggsInput.blur();
+                    }
+                });
+            });
+        });
+
+        document.querySelectorAll('.delete-btn').forEach(button => {
+            button.addEventListener('click', async (event) => {
+                const birdOid = event.target.getAttribute('data-bird-oid');
+
+                if (confirm('Вы уверены, что хотите удалить эту курочку?')) {
+                    try {
+                        const response = await fetch(`/birds/delete/${birdOid}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            }
+                        });
+
+                        if (response.ok) {
+                            event.target.closest('tr').remove();
+                            location.reload();
+                        } else {
+                            alert('Данные введены неверно');
+                            location.reload();
+                        }
+                    } catch (error) {
+                        console.error('Ошибка:', error);
+                        alert('Данные введены неверно');
+                        location.reload();
+                    }
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

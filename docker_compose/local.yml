@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+#  app:
+#    image: wimble-birds-app:1.0
+#    container_name: app
+#    build:
+#      context: ../.
+#      dockerfile: base.Dockerfile
+#    ports:
+#      - "8000:8000"
+#    depends_on:
+#      - db
+#    command: ["python", "wsgi.py"]
+#    restart: always
+
+  db:
+    container_name: db
+    image: postgres:14
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=root
+      - POSTGRES_DB=wimble_birds
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  pgadmin:
+    container_name: pgadmin
+    image: dpage/pgadmin4:4.23
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: 123123
+      PGADMIN_LISTEN_PORT: 80
+    ports:
+      - "15432:80"
+    volumes:
+      - pgadmin:/var/lib/pgadmin
+    depends_on:
+      - db
+
+
+volumes:
+  postgres_data:
+  pgadmin:

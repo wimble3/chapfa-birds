@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+<body>
+    {% block main %} {{ super() }}
+    <div class="container">
+        <h1 class="mt-5 mb-4">Добавить курятник</h1>
+        <form method="POST">
+            <div class="mb-3">
+                <label for="name" class="form-label">Название*</label>
+                <input type="text" class="form-control" id="name" name="name" required>
+            </div>
+            <div class="mb-3">
+                <label for="capacity" class="form-label">Вместимость*</label>
+                <input type="number" class="form-control" id="capacity" name="capacity" required>
+            </div>
+            <button type="submit" class="btn btn-dark">Добавить</button>
+        </form>
+        <a href="{{ url_for('coops.index') }}" class="btn btn-dark btn-sm mt-5">На главную</a>
+    </div>
+    {% endblock %}
+    {% block scripts %} {{ super() }}
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        let typeSelect = document.getElementById('type');
+        let eggsPerMonthField = document.getElementById('avg_eggs_per_month');
+
+        typeSelect.addEventListener('change', function() {
+            if (typeSelect.value === 'large') {
+                eggsPerMonthField.parentElement.style.display = 'none';
+                eggsPerMonthField.removeAttribute('required');
+            } else {
+                eggsPerMonthField.parentElement.style.display = 'block';
+                eggsPerMonthField.setAttribute('required', 'required');
+            }
+        });
+    });
+    </script>
+    {% endblock %}
+</body>
+</html>

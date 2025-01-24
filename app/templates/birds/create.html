@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block main %}
+<div class="container">
+    <h1 class="mt-5 mb-4">Добавить курочк</h1>
+    <form method="POST">
+        <div class="mb-3">
+            <label for="name" class="form-label">Имя*</label>
+            <input type="text" class="form-control" id="name" name="name" required>
+        </div>
+        <div class="mb-3">
+            <label for="type" class="form-label">Тип*</label>
+            <select class="form-select" id="type" name="type" required>
+                {% for type in bird_types %}
+                <option value="{{type}}">{{ type }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="mb-3">
+            <label for="weight" class="form-label">Вес (кг)*</label>
+            <input type="number" class="form-control" id="weight" name="weight" step="0.1" required>
+        </div>
+        <div class="mb-3">
+            <label for="avg_eggs_per_month" class="form-label">Среднее количество яиц в месяц</label>
+            <input type="number" class="form-control" id="avg_eggs_per_month" name="avg_eggs_per_month">
+        </div>
+        <button type="submit" class="btn btn-dark">Добавить</button>
+    </form>
+    <a href="{{ url_for('birds.listing', coop_oid=coop_oid) }}" class="btn btn-dark btn-sm mt-5">Назад</a>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let typeSelect = document.getElementById('type');
+    let eggsPerMonthField = document.getElementById('avg_eggs_per_month');
+
+    if (typeSelect.value === 'Бройлер') {
+        eggsPerMonthField.parentElement.style.display = 'none';
+    } else {
+        eggsPerMonthField.parentElement.style.display = 'block';
+    }
+
+    typeSelect.addEventListener('change', function() {
+        if (typeSelect.value === 'Бройлер') {
+            eggsPerMonthField.parentElement.style.display = 'none';
+        } else {
+            eggsPerMonthField.parentElement.style.display = 'block';
+        }
+    });
+});
+</script>
+{% endblock %}

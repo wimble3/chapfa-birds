@@ -1,0 +1,194 @@
+{% extends 'base.html' %}
+
+{% block main %}
+<div class="container">
+    <h1 class="mt-5 mb-4">Список курятников</h1>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Название</th>
+                <th>Вместимость</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for coop in coops %}
+            <tr data-coop-oid="{{ coop.oid }}">
+                <td>
+                    <span class="coop-name">{{ coop.name }}</span>
+                    <input type="text" class="form-control coop-name-edit" value="{{ coop.name }}" style="display: none;">
+                    <button class="btn btn-link btn-sm edit-name-btn">
+                        <img class="name-edit-button" src="{{ url_for('static', filename='img/pencil-square.svg') }}" alt="Edit">
+                    </button>
+                </td>
+                <td>
+                    <span class="coop-capacity">{{ coop.capacity }}</span>
+                    <input type="number" class="form-control coop-capacity-edit" value="{{ coop.capacity }}" style="display: none;">
+                    <button class="btn btn-link btn-sm edit-capacity-btn">
+                        <img class="capacity-edit-button" src="{{ url_for('static', filename='img/pencil-square.svg') }}" alt="Edit">
+                    </button>
+                </td>
+                <td>
+                    <a href="{{ url_for('birds.listing', coop_oid=coop.oid) }}" class="btn btn-dark btn-sm">
+                        Подробнее
+                    </a>
+                </td>
+                <td>
+                    <button
+                        type="button"
+                        class="btn btn-danger btn-sm delete-btn"
+                        data-coop-oid="{{ coop.oid }}">
+                        Удалить
+                    </button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <a href="{{ url_for('coops.create') }}" class="btn btn-dark btn-sm mt-5">Добавить курятник</a>
+
+    {% if page %}
+    <nav aria-label="Page navigation">
+        <ul class="pagination">
+            {% if page > 1 %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('list_coops', page=page-1) }}">Предыдущая</a>
+            </li>
+            {% endif %}
+
+            {% for p in range(1, total_pages + 1) %}
+            <li class="page-item {% if p == page %}active{% endif %}">
+                <a class="page-link" href="{{ url_for('list_coops', page=p) }}">{{ p }}</a>
+            </li>
+            {% endfor %}
+
+            {% if page < total_pages %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('list_coops', page=page+1) }}">Следующая</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}
+
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        async function updateCoop(coopOid, field, value) {
+            try {
+                const response = await fetch(`/update/${coopOid}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ field, value })
+                });
+
+                if (response.ok) {
+                    location.reload();
+                } else {
+                    throw new Error('Данные введены неверно');
+                }
+            } catch (error) {
+                console.error('Ошибка:', error);
+                alert('Данные введены неверно');
+                location.reload();
+            }
+        }
+
+        document.querySelectorAll('.edit-name-btn').forEach(button => {
+            button.addEventListener('click', (event) => {
+                const row = event.target.closest('tr');
+                const nameSpan = row.querySelector('.coop-name');
+                const nameInput = row.querySelector('.coop-name-edit');
+                const editButton = row.querySelector('.name-edit-button')
+
+                nameSpan.style.display = 'none';
+                nameInput.style.display = 'inline-block';
+                nameInput.focus();
+                editButton.style.display = 'none';
+
+                nameInput.addEventListener('blur', () => {
+                    const newName = nameInput.value;
+                    nameSpan.textContent = newName;
+                    nameSpan.style.display = 'inline-block';
+                    nameInput.style.display = 'none';
+
+                    const coopOid = row.getAttribute('data-coop-oid');
+                    updateCoop(coopOid, 'name', newName);
+                });
+
+                nameInput.addEventListener('keypress', (e) => {
+                    editButton.style.display = 'inline-block';
+                    if (e.key === 'Enter') {
+                        nameInput.blur();
+                    }
+                });
+            });
+        });
+
+        document.querySelectorAll('.edit-capacity-btn').forEach(button => {
+            button.addEventListener('click', (event) => {
+                const row = event.target.closest('tr');
+                const capacitySpan = row.querySelector('.coop-capacity');
+                const capacityInput = row.querySelector('.coop-capacity-edit');
+                const editButton = row.querySelector('.capacity-edit-button')
+
+                capacitySpan.style.display = 'none';
+                capacityInput.style.display = 'inline-block';
+                capacityInput.focus();
+                editButton.style.display = 'none';
+
+                capacityInput.addEventListener('blur', () => {
+                    const newCapacity = capacityInput.value;
+                    capacitySpan.textContent = newCapacity;
+                    capacitySpan.style.display = 'inline-block';
+                    capacityInput.style.display = 'none';
+
+                    const coopOid = row.getAttribute('data-coop-oid');
+                    updateCoop(coopOid, 'capacity', newCapacity);
+                });
+
+                capacityInput.addEventListener('keypress', (e) => {
+                    editButton.style.display = 'inline-block';
+                    if (e.key === 'Enter') {
+                        capacityInput.blur();
+                    }
+                });
+            });
+        });
+
+        document.querySelectorAll('.delete-btn').forEach(button => {
+            button.addEventListener('click', async (event) => {
+                const coopOid = event.target.getAttribute('data-coop-oid');
+
+                if (confirm('Вы уверены, что хотите удалить этот курятник?')) {
+                    try {
+                        const response = await fetch(`/delete/${coopOid}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            }
+                        });
+
+                        if (response.ok) {
+                            event.target.closest('tr').remove();
+                            location.reload();
+                        } else {
+                            throw new Error('Данные введены неверно');
+                        }
+                    } catch (error) {
+                        console.error('Ошибка:', error);
+                        alert('Данные введены неверно');
+                        location.reload();
+                    }
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}
